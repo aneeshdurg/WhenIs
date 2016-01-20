@@ -18,6 +18,7 @@ os.chdir(vDir)
 files = [f for f in os.listdir('.') if os.path.isfile(os.path.join('.', f))]
 vfiles = []
 frames = [-1, -1]
+sframe = -1
 for i in xrange(len(files)):
     if files[i].endswith(vext):
         vfiles.append(files[i])
@@ -31,6 +32,7 @@ for i in range(1,len(vfiles)):
     frame = 0
     s1 = True
     s2 = True
+    #For testing purposes:
     if len(argv)!=1:
         while s1 and s2: 
             s1, f1 = file1.read()
@@ -45,22 +47,12 @@ for i in range(1,len(vfiles)):
             key = cv2.waitKey(1) & 0xFF 
             if key == ord('q'):
                 break
-
-
-        #if d>10000:
-            #something = False
-            #if something:
-                #while True:
-                    #cv2.imshow(vfiles[i-1], f1)
-                    #cv2.imshow(vfiles[i], f2)
-                    #key = cv2.waitKey(1) & 0xFF
-                    #if key == ord('q'):
-                        #break
     aPointer = 0
-    thresh = 50
+    thresh = 150
     a = -1
     frames[0] = 0
     ref = None
+    fps = file1.get(cv2.cv.CV_CAP_PROP_FPS)
     while True:
         s1, f1 = file1.read()
         while True:
@@ -72,7 +64,10 @@ for i in range(1,len(vfiles)):
             if key == ord('n'):
                 break
         if ref != None:
+            cv2.destroyAllWindows()
             break
+        os.system('cls')
+        print str( frames[0] ) +' '+str( frames[0]/int(fps) )
         frames[0] += 1
     frame = frames[0]
     if frames[0] == 0:
@@ -82,16 +77,15 @@ for i in range(1,len(vfiles)):
         s2, f2 = file2.read()
         d = np.sum((ref.astype('float')-f2.astype('float'))**2)
         d /= float(ref.shape[0]*ref.shape[1])
+        cv2.imshow('SEARCHING', f2)
+        cv2.waitKey(1)
         if d<10000:
+            cv2.destroyAllWindows()
             break
         j += 1
     if j==0:
         file2 = cv2.VideoCapture(vfiles[i])
-
-    #for j in xrange(1900):
-    #    s1, f1 = file1.read()
-    #    frame = j    
-    #    s2, f2 = file2.read()
+    sframe = j
     while s1 and s2: 
         s1, f1 = file1.read()
         s2, f2 = file2.read()
@@ -101,16 +95,6 @@ for i in range(1,len(vfiles)):
         cv2.imshow('f1', f1)
         d = np.sum((f1.astype('float')-f2.astype('float'))**2)
         d /= float(f1.shape[0]*f1.shape[1])
-        #print str(frame)+' '+str(d)
-        #if d>10000:
-            #something = False
-            #if something:
-                #while True:
-                    #cv2.imshow(vfiles[i-1], f1)
-                    #cv2.imshow(vfiles[i], f2)
-                    #key = cv2.waitKey(1) & 0xFF
-                    #if key == ord('q'):
-                        #break
         if d<10000:
             if frames[0] == -1:
                 if a!=-1:
@@ -129,7 +113,7 @@ for i in range(1,len(vfiles)):
                 a = frame
                 aPointer += 1
         os.system('cls')
-        print str(frame)+' d:'+str(d)+' o:'+str( aPointer )+'/'+str(thresh)
+        print 'Frame: '+str(frame)+' Diff:'+str(d)+' Err:'+str( aPointer )+'/'+str(thresh)+' Time: '+str(frame/int(fps))
         frame += 1
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
@@ -143,8 +127,9 @@ for i in range(1,len(vfiles)):
     else:
         quit += " Error Threshold Reached ("+str(thresh)+")"
     print quit
-    print "Common matching sequence at ("+str( frames[0] )+","+str( frames[1] )+")"
-    
+    print "Common matching sequence at ("+str( frames[0] )+","+str( frames[1] )+") for file "+vfiles[i-1]
+    print "Common matching sequence at ("+str( sframe )+","+str( frames[1]-frames[0]+sframe )+") for file "+vfiles[i]
+
     file1 = cv2.VideoCapture(vfiles[0])
     for i in xrange(frames[0]):
         s, f = file1.read()
@@ -163,4 +148,9 @@ for i in range(1,len(vfiles)):
             if key == ord('q'):
                 break
         break   
+    cv2.destroyAllWindows()
+    file1.release()
+    file2.release()
+    v.release()
+    print "Found frames saved as Matching.avi"
     exit() 
