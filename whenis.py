@@ -54,7 +54,7 @@ if len(argv)!=1:
         if key == ord('q'):
             break
 aPointer = 0
-thresh = 148
+thresh = 150
 a = -1
 frames[0] = 0
 ref = None
@@ -92,6 +92,7 @@ while True:
 if j==0:
     file2 = cv2.VideoCapture(vfiles[file2ID])
 sframe = j
+outlier = [ False, False ]
 while s1 and s2: 
     s1, f1 = file1.read()
     s2, f2 = file2.read()
@@ -102,22 +103,31 @@ while s1 and s2:
     d = np.sum((f1.astype('float')-f2.astype('float'))**2)
     d /= float(f1.shape[0]*f1.shape[1])
     if d<10000:
-        if frames[0] == -1:
-            if a!=-1:
-                frames[0] = 0
-            else:
-                frames[0] = frame
         if a != -1:
-            frames[1] = a
-        a = -1
-        aPointer = 0
-        frames[1] = frame 
-    else:
-        if aPointer == thresh:
-            break
+            if outlier[0]:
+                outlier[0] = False
+                outlier[1] = True
+                aPointer += 1
+                a = frame
+            elif outlier[1]:
+                outlier[1] = False
+                aPointer = 0
+                frames[1] = frame 
+                a = -1
+            else:
+                outlier[0] = True
+                a = frame
+                aPointer += 1
+            if aPointer>=thresh:
+                break
         else:
-            a = frame
-            aPointer += 1
+            frames[1] = frame 
+    else:
+        outlier = [False, False]
+        a = frame
+        aPointer += 1
+        if aPointer >= thresh:
+            break
     os.system('cls')
     print 'Frame: '+str(frame)+' Diff:'+str(d)+' Err:'+str( aPointer )+'/'+str(thresh)+' Time: '+str(frame/int(fps))
     frame += 1
@@ -126,18 +136,23 @@ while s1 and s2:
         break
 
 cv2.destroyAllWindows()
-print 'final frame count: '+str(frames[1]-frames[0])
+fcount = frames[1]-frames[0]
+duration = fcount/int(fps)
+minutes = int(duration/60)
+seconds = duration - 60*minutes
+
+print 'final frame count: '+str(fcount)+' for a duration of '+str(minutes)+':'+str(seconds)
 quit = "Terminated due to"
 if aPointer == -1:
     quit += " EOF"
 else:
     quit += " Error Threshold Reached ("+str(thresh)+")"
 print quit
-print "Common matching sequence at ("+str( frames[0] )+","+str( frames[1] )+") for file "+vfiles[file1ID]
-print "Common matching sequence at ("+str( sframe )+","+str( frames[1]-frames[0]+sframe )+") for file "+vfiles[file2ID]
+print "Common matching sequence at ("+str( frames[0] )+","+str( frames[1] )+") starting at time: "+str(frames[0]/int(fps))+"s for file "+vfiles[file1ID]
+print "Common matching sequence at ("+str( sframe )+","+str( fcount+sframe )+") starting at time: "+str(sframe/int(fps))+"s for file "+vfiles[file2ID]
 file1 = cv2.VideoCapture(vfiles[file1ID])
 for i in xrange(frames[0]):
-s, f = file1.read()
+    s, f = file1.read()
 fps = file1.get(cv2.cv.CV_CAP_PROP_FPS)
 w = file1.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)
 w = int(w)
