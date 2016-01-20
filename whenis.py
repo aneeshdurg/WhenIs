@@ -59,6 +59,35 @@ for i in range(1,len(vfiles)):
     aPointer = 0
     thresh = 50
     a = -1
+    frames[0] = 0
+    ref = None
+    while True:
+        s1, f1 = file1.read()
+        while True:
+            cv2.imshow('SELECT STARTING FRAME', f1)
+            key = cv2.waitKey(0) & 0xFF
+            if key == ord('x'):
+                ref = f1
+                break
+            if key == ord('n'):
+                break
+        if ref != None:
+            break
+        frames[0] += 1
+    frame = frames[0]
+    if frames[0] == 0:
+        file1 = cv2.VideoCapture(vfiles[i-1])
+    j = 0
+    while True:
+        s2, f2 = file2.read()
+        d = np.sum((ref.astype('float')-f2.astype('float'))**2)
+        d /= float(ref.shape[0]*ref.shape[1])
+        if d<10000:
+            break
+        j += 1
+    if j==0:
+        file2 = cv2.VideoCapture(vfiles[i])
+
     #for j in xrange(1900):
     #    s1, f1 = file1.read()
     #    frame = j    
@@ -66,7 +95,7 @@ for i in range(1,len(vfiles)):
     while s1 and s2: 
         s1, f1 = file1.read()
         s2, f2 = file2.read()
-        if not s1 and not s2:
+        if not s1 or not s2:
             aPointer = -1
             break
         cv2.imshow('f1', f1)
